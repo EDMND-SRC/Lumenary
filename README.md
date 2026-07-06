@@ -33,9 +33,9 @@
 
 ## Introduction
 
-Lumenary is a browser-native viewer for photorealistic 3D environments. No plugins, no downloads — just a WebGPU-compatible browser and an internet connection.
+Lumenary is a browser-native viewer for photorealistic 3D environments. It uses 3D Gaussian Splatting (3DGS) to reconstruct real-world locations from drone and ground-level video footage. The viewer runs in any WebGPU-compatible browser. No plugins or downloads required.
 
-The project uses 3D Gaussian Splatting (3DGS) to reconstruct real-world locations from drone and ground-level video footage. The result is a navigable 3D scene rendered client-side through a custom WebGPU engine written in WGSL. The renderer handles up to 2 million Gaussian splats per scene with depth sorting, LOD management, and spatial audio — all through compute shaders running on the GPU.
+The renderer is a custom WebGPU engine written in WGSL. It handles up to 2 million Gaussian splats per scene with depth sorting, LOD management, and spatial audio. All rendering runs client-side through compute shaders.
 
 The first two scenes are the Okavango Delta and Gaborone City in Botswana.
 
@@ -43,59 +43,59 @@ The first two scenes are the Okavango Delta and Gaborone City in Botswana.
 
 ## Pipeline
 
-The GPU work happens during training, not rendering. Each scene goes through this pipeline:
+GPU work is done during training, not rendering. Each scene follows this process:
 
-**1. Frame extraction.** Drone footage is processed into filtered image sets — blur detection, deduplication, and temporal subsampling remove unusable frames before they reach the trainer.
+**1. Frame extraction.** Drone footage is processed into filtered image sets. Blur detection, deduplication, and temporal subsampling remove unusable frames before training.
 
 **2. Camera pose estimation.** COLMAP runs structure-from-motion on the filtered image set to estimate camera positions and orientations.
 
-**3. 3DGS training.** The Gaussian Splatting model trains for 30,000 iterations using differentiable Gaussian rasterization built on PyTorch. On a free-tier T4 (16 GB VRAM), a single scene takes 30–45 minutes at 1,600 px resolution.
+**3. 3DGS training.** The Gaussian Splatting model trains for 30,000 iterations using differentiable Gaussian rasterization built on PyTorch. On a free-tier T4 (16 GB VRAM), a single scene takes 30-45 minutes at 1,600 px resolution.
 
-**4. Export and serve.** The trained model exports as a `.ply` file (150–300 MB), uploaded to Google Cloud Storage and streamed directly into the browser renderer.
+**4. Export and serve.** The trained model exports as a .ply file (150-300 MB), uploaded to Google Cloud Storage and streamed into the browser renderer.
 
-**5. Client-side rendering.** The WebGPU engine parses the PLY binary on the GPU, sorts splats by depth, and rasterizes them as view-aligned quads with Gaussian alpha falloff — all in real time.
+**5. Client-side rendering.** The WebGPU engine parses the PLY binary on the GPU, sorts splats by depth, and rasterizes them as view-aligned quads with Gaussian alpha falloff.
 
 ---
 
 ## Why Botswana
 
-The long-term goal is to cover every significant landmark in Botswana — working with museum directors, the Botswana Tourism Organisation, conservation authorities, and academic partners to source footage and clear rights.
+The goal is to cover every significant landmark in Botswana. This requires working with museum directors, the Botswana Tourism Organisation, conservation authorities, and academic partners to source footage and clear rights.
 
-After that, the plan is to expand across the SADC region using the same approach. At that scale, training easily runs into hundreds of jobs. Dedicated GPU access turns one scene a day into a dozen.
+After Botswana, the plan is to expand across the SADC region. At that scale, training runs into hundreds of jobs. Dedicated GPU access turns one scene a day into a dozen.
 
 ---
 
 ## ROCm and Open Research
 
-There's a gap in the 3DGS ecosystem worth addressing. The core training stack — gaussian-splatting, diff-gaussian-rasterization, simple-knn, fused-ssim — was built for NVIDIA CUDA. ROCm support exists in principle, but there is very little documented guidance for getting a full 3DGS training run working end-to-end on AMD hardware: the correct compute capability flags, kernel compatibility in diff-gaussian-rasterization, and the full dependency chain.
+The core 3DGS training stack (gaussian-splatting, diff-gaussian-rasterization, simple-knn, fused-ssim) was built for NVIDIA CUDA. ROCm support exists in principle, but there is little documented guidance for getting a full 3DGS training run working end-to-end on AMD hardware. This includes the correct compute capability flags, kernel compatibility in diff-gaussian-rasterization, and the full dependency chain.
 
-Using the AMD Developer Cloud, the plan is to work through that and publish the findings openly. A working ROCm setup guide would give other researchers a reference they currently don't have.
+Using the AMD Developer Cloud, the plan is to work through that and publish the findings openly. A working ROCm setup guide would give other researchers a reference that currently does not exist.
 
 ---
 
 ## Tech Stack
 
 **Client**
-- **[TypeScript](https://www.typescriptlang.org/)** — application logic
-- **[Vite](https://vitejs.dev/)** — build tool and dev server
-- **[WebGPU](https://www.w3.org/TR/webgpu/)** — GPU compute and rendering
-- **[WGSL](https://www.w3.org/TR/WGSL/)** — compute and rasterization shaders
-- **[Three.js](https://threejs.org/)** — map scene renderer
-- **[GSAP](https://gsap.com/)** — screen transitions and animations
+- **[TypeScript](https://www.typescriptlang.org/)** - application logic
+- **[Vite](https://vitejs.dev/)** - build tool and dev server
+- **[WebGPU](https://www.w3.org/TR/webgpu/)** - GPU compute and rendering
+- **[WGSL](https://www.w3.org/TR/WGSL/)** - compute and rasterization shaders
+- **[Three.js](https://threejs.org/)** - map scene renderer
+- **[GSAP](https://gsap.com/)** - screen transitions and animations
 
-**Backend & Infrastructure**
-- **[Firebase](https://firebase.google.com/)** — authentication and Firestore
-- **[Google Cloud Storage](https://cloud.google.com/storage)** — PLY file hosting
-- **[Google Cloud Run](https://cloud.google.com/run)** — viewer deployment
-- **[Vertex AI](https://cloud.google.com/vertex-ai)** — GPU training jobs
-- **[nginx](https://nginx.org/)** — production serving
+**Backend and Infrastructure**
+- **[Firebase](https://firebase.google.com/)** - authentication and Firestore
+- **[Google Cloud Storage](https://cloud.google.com/storage)** - PLY file hosting
+- **[Google Cloud Run](https://cloud.google.com/run)** - viewer deployment
+- **[Vertex AI](https://cloud.google.com/vertex-ai)** - GPU training jobs
+- **[nginx](https://nginx.org/)** - production serving
 
 **Training**
-- **[PyTorch](https://pytorch.org/)** — deep learning framework
-- **[COLMAP](https://colmap.github.io/)** — structure-from-motion
-- **[diff-gaussian-rasterization](https://github.com/graphdeco-inria/diff-gaussian-rasterization)** — CUDA rasterizer
-- **[simple-knn](https://github.com/graphdeco-inria/simple-knn)** — nearest neighbor acceleration
-- **[fused-ssim](https://github.com/graphdeco-inria/fused-ssim)** — SSIM kernel
+- **[PyTorch](https://pytorch.org/)** - deep learning framework
+- **[COLMAP](https://colmap.github.io/)** - structure-from-motion
+- **[diff-gaussian-rasterization](https://github.com/graphdeco-inria/diff-gaussian-rasterization)** - CUDA rasterizer
+- **[simple-knn](https://github.com/graphdeco-inria/simple-knn)** - nearest neighbor acceleration
+- **[fused-ssim](https://github.com/graphdeco-inria/fused-ssim)** - SSIM kernel
 
 ---
 
@@ -134,8 +134,6 @@ Open [http://localhost:3000](http://localhost:3000) in a WebGPU-compatible brows
 ```bash
 npm run build
 ```
-
-Output goes to `dist/`.
 
 ---
 
