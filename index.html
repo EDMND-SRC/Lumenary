@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUMENARY — Experience Botswana in 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #08080f;
+      --bg-surface: #111118;
+      --bg-elevated: #1a1a24;
+      --accent-teal: #00c2cb;
+      --accent-amber: #e8a838;
+      --accent-coral: #e06b54;
+      --text-primary: #eaeaea;
+      --text-muted: #6b7280;
+      --text-dim: #4b5563;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+
+    .screen.hidden { opacity: 0; pointer-events: none; }
+    .screen.visible { opacity: 1; pointer-events: all; }
+
+    /* ─── Loading Screen ─── */
+    #loading-screen {
+      background: var(--bg-primary);
+      flex-direction: column;
+      gap: 32px;
+      z-index: 100;
+    }
+
+    .loading-brand {
+      text-align: center;
+    }
+
+    .loading-brand h1 {
+      font-size: 2.5rem;
+      font-weight: 300;
+      letter-spacing: 0.4em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .loading-brand p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .loading-progress {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #progress-bar {
+      width: 100%;
+      height: 2px;
+      background: var(--border-subtle);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-teal), var(--accent-amber));
+      transition: width 0.3s ease;
+      border-radius: 1px;
+    }
+
+    .loading-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #loading-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    #loading-percent {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── Auth Screen ─── */
+    #auth-screen {
+      background: var(--bg-primary);
+      flex-direction: column;
+      z-index: 90;
+    }
+
+    #auth-card {
+      text-align: center;
+      max-width: 400px;
+      padding: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+    }
+
+    #auth-card h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    #auth-card .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      margin-bottom: 12px;
+    }
+
+    .auth-btn-google {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .auth-btn-google:hover {
+      background: #d4d4d8;
+      transform: translateY(-1px);
+    }
+
+    .auth-btn-skip {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .auth-btn-skip:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    #auth-error {
+      color: var(--accent-coral);
+      font-size: 0.8rem;
+      margin-top: 12px;
+    }
+
+    /* ─── Map Scene Selector ─── */
+    #map-screen {
+      background: var(--bg-primary);
+      flex-direction: column;
+      z-index: 80;
+    }
+
+    .map-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 32px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .map-header h1 {
+      font-size: 1.2rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      color: var(--text-primary);
+    }
+
+    .map-header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .map-header .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: var(--accent-teal);
+    }
+
+    .map-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #map-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #scene-info {
+      position: absolute;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 32px 40px;
+      text-align: center;
+      opacity: 0;
+      min-width: 360px;
+      backdrop-filter: blur(20px);
+    }
+
+    #scene-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    #scene-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 340px;
+    }
+
+    #enter-scene-btn {
+      padding: 14px 32px;
+      background: var(--accent-teal);
+      color: var(--bg-primary);
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    #enter-scene-btn:hover {
+      background: #00d4de;
+      transform: translateY(-1px);
+    }
+
+    .map-instructions {
+      position: absolute;
+      bottom: 48px;
+      right: 48px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    /* ─── Viewer Canvas ─── */
+    #viewer-screen {
+      background: var(--bg-primary);
+      z-index: 70;
+    }
+
+    #lumenary-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewer-back-btn {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      z-index: 200;
+      padding: 10px 20px;
+      background: rgba(17, 17, 24, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .viewer-back-btn:hover {
+      background: rgba(26, 26, 36, 0.9);
+      border-color: var(--accent-teal);
+    }
+
+    .viewer-hud {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .hud-item {
+      padding: 8px 14px;
+      background: rgba(17, 17, 24, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hud-item span {
+      color: var(--accent-teal);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="screen visible">
+    <div class="loading-brand">
+      <h1>LUMENARY</h1>
+      <p>Experience Botswana in 3D</p>
+    </div>
+    <div class="loading-progress">
+      <div id="progress-bar"><div id="progress-fill"></div></div>
+      <div class="loading-meta">
+        <span id="loading-status">Initializing...</span>
+        <span id="loading-percent">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="screen hidden">
+    <div id="auth-card">
+      <h2>Welcome to Lumenary</h2>
+      <p class="subtitle">Sign in to experience Botswana's most iconic landscapes in immersive 3D</p>
+      <button class="auth-btn auth-btn-google" id="google-signin-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <button class="auth-btn auth-btn-skip" id="skip-auth-btn">
+        Continue as Guest
+      </button>
+      <div id="auth-error" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Map Scene Selector -->
+  <div id="map-screen" class="screen hidden">
+    <div class="map-header">
+      <h1>LUMENARY</h1>
+      <div class="user-info">
+        <span id="user-display-name">Guest</span>
+        <div class="user-avatar" id="user-avatar">G</div>
+      </div>
+    </div>
+    <div class="map-container">
+      <canvas id="map-canvas"></canvas>
+    </div>
+    <div id="scene-info">
+      <h2 id="scene-title"></h2>
+      <p id="scene-desc"></p>
+      <button id="enter-scene-btn">Enter Scene</button>
+    </div>
+    <div class="map-instructions">
+      Click a marker to explore<br>
+      Scroll to zoom
+    </div>
+  </div>
+
+  <!-- 3DGS Viewer -->
+  <div id="viewer-screen" class="screen hidden">
+    <button class="viewer-back-btn" id="back-to-map-btn">← Back to Map</button>
+    <div class="viewer-hud">
+      <div class="hud-item">FPS: <span id="hud-fps">0</span></div>
+      <div class="hud-item">Splats: <span id="hud-splats">0</span></div>
+      <div class="hud-item">Scene: <span id="hud-scene">—</span></div>
+    </div>
+    <canvas id="lumenary-canvas"></canvas>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

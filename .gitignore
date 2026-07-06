@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+env/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Firebase cache
+.firebase/
+
+# Docker
+*.tar
+
+# Temporary
+tmp/
+temp/
+
+# Training data — large binaries, not part of source
+room.ply
+*.ply
+processing/
+input_vault/
+colab/training_images/
+
+# Deployment scripts (contain project-specific configuration)
+deploy_lumenary.sh
+deploy_viewer.sh
+run_vertex_job.sh
+setup_firestore.sh
+setup_firestore.cjs
